@@ -1,8 +1,15 @@
 import express from "express";
 import morgan from "morgan";
 import cors from "cors";
-
+import mongoose from "mongoose";
+import dotenv from "dotenv";
 import contactsRouter from "./routes/contactsRouter.js";
+
+dotenv.config();
+
+mongoose.set("strictQuery", true);
+const DB_HOST =
+  "mongodb+srv://Lasosi1:659547qq@cluster0.rl80trt.mongodb.net/db-contacts?retryWrites=true&w=majority";
 
 const app = express();
 
@@ -21,6 +28,14 @@ app.use((err, req, res, next) => {
   res.status(status).json({ message });
 });
 
-app.listen(3000, () => {
-  console.log("Server is running. Use our API on port: 3000");
-});
+mongoose
+  .connect(DB_HOST)
+  .then(() => {
+    app.listen(3000, () => {
+      console.log("Database connection successful");
+    });
+  })
+  .catch((error) => {
+    console.log(error.massage);
+    process.exit(1);
+  });
