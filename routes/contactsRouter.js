@@ -5,18 +5,24 @@ import {
   deleteContact,
   createContact,
   updateContact,
+  updateFavorite,
 } from "../controllers/contactsControllers.js";
+
+import { isValidId } from "../middlewares/isValidId.js";
+import { authenticate } from "../middlewares/authenticate.js";
 
 const contactsRouter = express.Router();
 
-contactsRouter.get("/", getAllContacts);
+contactsRouter.get("/", authenticate, getAllContacts);
 
-contactsRouter.get("/:id", getOneContact);
+contactsRouter.get("/:id", authenticate, isValidId, getOneContact);
 
-contactsRouter.delete("/:id", deleteContact);
+contactsRouter.delete("/:id", authenticate, isValidId, deleteContact);
 
-contactsRouter.post("/", createContact);
+contactsRouter.post("/", authenticate, createContact);
 
-contactsRouter.put("/:id", updateContact);
+contactsRouter.put("/:id", authenticate, isValidId, updateContact);
+
+contactsRouter.patch("/:id/favorite", authenticate, isValidId, updateFavorite);
 
 export default contactsRouter;
