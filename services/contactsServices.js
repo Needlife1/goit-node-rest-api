@@ -1,7 +1,13 @@
 import { Contact } from "../schemas/contactsSchemas.js";
+import { ObjectId } from "mongodb";
 
-export async function listContacts() {
-  const data = await Contact.find();
+export async function listContacts(owner, limit, skip) {
+  const data = await Contact.find(
+    { owner: new ObjectId(owner) },
+    "-updatedAt -createdAt",
+    { skip, limit }
+  ).populate("owner");
+
   return data;
 }
 

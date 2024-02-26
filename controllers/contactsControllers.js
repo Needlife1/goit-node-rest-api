@@ -13,7 +13,10 @@ import {
 } from "../schemas/contactsSchemas.js";
 
 export const getAllContacts = async (req, res) => {
-  const allContacts = await listContacts();
+  const { _id: owner } = req.user;
+  const { page = 1, limit = 20 } = req.query;
+  const skip = (page - 1) * limit;
+  const allContacts = await listContacts(owner, limit, skip);
 
   res.status(200).send(allContacts);
 };
@@ -55,7 +58,8 @@ export const createContact = async (req, res) => {
     return res.status(400).send({ message: error.message });
   }
 
-  const newContact = await addContact(value);
+  const { _id: owner } = req.user;
+  const newContact = await addContact({ ...value, owner });
 
   res.status(201).send(newContact);
 };
