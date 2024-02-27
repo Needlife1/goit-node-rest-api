@@ -37,57 +37,76 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const { value, error } = loginSchema.validate(req.body);
+  try {
+    const { value, error } = loginSchema.validate(req.body);
 
-  if (error) {
-    return res.status(400).send({ message: error.message });
+    if (error) {
+      return res.status(400).send({ message: error.message });
+    }
+
+    const user = await User.findOne({ email: value.email });
+
+    if (!user) {
+      return res.status(401).send("Email or password is wrong");
+    }
+
+    const passwordCompare = await bcrypt.compare(value.password, user.password);
+
+    if (!passwordCompare) {
+      return res.status(401).send("Email or password is wrong");
+    }
+
+    const payload = {
+      id: user._id,
+    };
+
+    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "23h" });
+
+    await User.findByIdAndUpdate(user._id, { token });
+
+    res.status(200).json({
+      token: token,
+      user: {
+        email: value.email,
+        subscription: "starter",
+      },
+    });
+  } catch (error) {
+    console.error("Помилка під час логіну користувача:", error);
+    res
+      .status(500)
+      .send({ message: "Щось пішло не так. Будь ласка, спробуйте ще раз." });
   }
-
-  const user = await User.findOne({ email: value.email });
-
-  if (!user) {
-    return res.status(401).send("Email or password is wrong");
-  }
-
-  const passwordCompare = await bcrypt.compare(value.password, user.password);
-
-  if (!passwordCompare) {
-    return res.status(401).send("Email or password is wrong");
-  }
-
-  const payload = {
-    id: user._id,
-  };
-
-  const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "23h" });
-
-  await User.findByIdAndUpdate(user._id, { token });
-
-  res.status(200).json({
-    token: token,
-    user: {
-      email: value.email,
-      subscription: "starter",
-    },
-  });
 };
 
 export const getCurrent = async (req, res) => {
-  const { token } = req.user;
+  try {
+    const { token } = req.user;
 
-  if (!token) {
-    return res.status(401).send("Not authorized");
+    if (!token) {
+      return res.status(401).send("Not authorized");
+    }
+
+    res.json({
+      token,
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send({ message: "Щось пішло не так." });
   }
-
-  res.json({
-    token,
-  });
 };
 
 export const logout = async (req, res) => {
-  const { _id } = req.user;
+  try {
+    const { _id } = req.user;
 
-  await User.findByIdAndUpdate(req.user, { token: null });
+    await User.findByIdAndUpdate(_id, { token: null });
 
-  return res.status(204);
+    return res.status(204).end();
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send({
+      message: "Щось пішло не так.",
+    });
+  }
 };
