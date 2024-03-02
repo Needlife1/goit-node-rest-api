@@ -2,41 +2,50 @@ import { loginSchema, registerSchema, User } from "../schemas/usersSchemas.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import gravatar from "gravatar";
+import path from "path";
+import fs from "fs/promises";
+import { fileURLToPath } from "url";
+import { ctrlWrapper } from "../helpers/ctrlWrapper.js";
+import Jimp from "jimp";
 
 dotenv.config();
 
 const { SECRET_KEY } = process.env;
 
-export const register = async (req, res) => {
-  try {
-    const { value, error } = registerSchema.validate(req.body);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-    if (error) {
-      return res.status(400).send({ message: error.message });
-    }
+const avatarsDir = path.join(__dirname, "../", "public", "avatars");
 
-    const existingUser = await User.findOne({ email: value.email });
-    if (existingUser) {
-      return res.status(409).send({ message: "Email in use" });
-    }
+const register = async (req, res) => {
+  const { value, error } = registerSchema.validate(req.body);
 
-    const hashPassword = await bcrypt.hash(value.password, 10);
-
-    const newUser = await User.create({ ...value, password: hashPassword });
-
-    res.status(201).json({
-      password: newUser.password,
-      email: newUser.email,
-    });
-  } catch (error) {
-    console.error("Помилка під час реєстрації користувача:", error);
-    res
-      .status(500)
-      .send({ message: "Щось пішло не так. Будь ласка, спробуйте ще раз." });
+  if (error) {
+    return res.status(400).send({ message: error.message });
   }
+
+  const existingUser = await User.findOne({ email: value.email });
+  if (existingUser) {
+    return res.status(409).send({ message: "Email in use" });
+  }
+
+  const hashPassword = await bcrypt.hash(value.password, 10);
+  const avatarURL = gravatar.url(value.email);
+
+  const newUser = await User.create({
+    ...value,
+    password: hashPassword,
+    avatarURL,
+  });
+
+  res.status(201).json({
+    password: newUser.subscription,
+    email: newUser.email,
+  });
 };
 
-export const login = async (req, res) => {
+const login = async (req, res) => {
   const { value, error } = loginSchema.validate(req.body);
 
   if (error) {
@@ -72,7 +81,7 @@ export const login = async (req, res) => {
   });
 };
 
-export const getCurrent = async (req, res) => {
+const getCurrent = async (req, res) => {
   const { token } = req.user;
 
   if (!token) {
@@ -84,10 +93,38 @@ export const getCurrent = async (req, res) => {
   });
 };
 
-export const logout = async (req, res) => {
+const logout = async (req, res) => {
   const { _id } = req.user;
 
-  await User.findByIdAndUpdate(req.user, { token: null });
+  await User.findByIdAndUpdate(_id, { token: null });
 
-  return res.status(204);
+  return res.status(204).end();
+};
+
+const updateAvatar = async (req, res) => {
+  const { _id } = req.user;
+  const { path: tempUpload, originalname } = req.file;
+
+  const filename = `${_id}_${originalname}`;
+  const resultUpload = path.join(avatarsDir, filename);
+  await fs.rename(tempUpload, resultUpload);
+  const avatarURL = path.join("avatars", filename);
+
+  const image = await Jimp.read(resultUpload);
+  image.resize(250, 250);
+  image.write(resultUpload);
+
+  await User.findByIdAndUpdate(_id, { avatarURL });
+
+  res.json({
+    avatarURL,
+  });
+};
+
+export const controllers = {
+  register: ctrlWrapper(register),
+  login: ctrlWrapper(login),
+  getCurrent: ctrlWrapper(getCurrent),
+  logout: ctrlWrapper(logout),
+  updateAvatar: ctrlWrapper(updateAvatar),
 };

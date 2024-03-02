@@ -1,18 +1,21 @@
 import express from "express";
-import {
-  register,
-  login,
-  getCurrent,
-  logout,
-} from "../controllers/authControllers.js";
+import { controllers } from "../controllers/authControllers.js";
 import { authenticate } from "../middlewares/authenticate.js";
+import { upload } from "../middlewares/upload.js";
 
 export const authRouter = express.Router();
 
-authRouter.post("/register", register);
+authRouter.post("/register", controllers.register);
 
-authRouter.post("/login", login);
+authRouter.post("/login", controllers.login);
 
-authRouter.get("/current", authenticate, getCurrent);
+authRouter.get("/current", authenticate, controllers.getCurrent);
 
-authRouter.post("/logout", authenticate, logout);
+authRouter.post("/logout", authenticate, controllers.logout);
+
+authRouter.patch(
+  "/avatars",
+  authenticate,
+  upload.single("avatar"),
+  controllers.updateAvatar
+);

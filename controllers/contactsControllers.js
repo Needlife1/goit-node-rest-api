@@ -30,7 +30,7 @@ export const getOneContact = async (req, res) => {
     return res.status(404).send({ message: "Not found" });
   }
 
-  res.status(201).send(contactById);
+  res.status(200).send(contactById);
 };
 
 export const deleteContact = async (req, res) => {
