@@ -39,19 +39,19 @@ const register = async (req, res) => {
 
   const hashPassword = await bcrypt.hash(value.password, 10);
   const avatarURL = gravatar.url(value.email);
-  const verificationCode = randomUUID();
+  const verificationToken = randomUUID();
 
   const newUser = await User.create({
     ...value,
     password: hashPassword,
     avatarURL,
-    verificationCode,
+    verificationToken,
   });
 
   const verifyEmail = {
     to: value.email,
     subject: "Verify email",
-    html: `<a target="_blank" href="${BASE_URL}/api/users/verify/${verificationCode}">Click verify mail</a>`,
+    html: `<a target="_blank" href="${BASE_URL}/api/users/verify/${verificationToken}">Click verify mail</a>`,
   };
 
   await sendEmail(verifyEmail);
@@ -97,7 +97,7 @@ const resendVerifyEmail = async (req, res) => {
   const verifyEmail = {
     to: value.email,
     subject: "Verify email",
-    html: `<a target="_blank" href="${BASE_URL}/api/users/verify/${user.verificationCode}">Click verify mail</a>`,
+    html: `<a target="_blank" href="${BASE_URL}/api/users/verify/${user.verificationToken}">Click verify mail</a>`,
   };
 
   await sendEmail(verifyEmail);
