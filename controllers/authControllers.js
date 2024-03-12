@@ -65,8 +65,8 @@ const register = async (req, res) => {
 const verifyEmail = async (req, res) => {
   const { verificationToken } = req.params;
   const user = await User.findOne({ verificationToken });
-  if (!user) {
-    return res.status(401).send({ message: error.message });
+  if (user === null) {
+    return res.status(404).send({ message: "User not found" });
   }
   await User.findByIdAndUpdate(user._id, {
     verify: true,
@@ -83,6 +83,7 @@ const resendVerifyEmail = async (req, res) => {
     return res.status(400).send({ message: error.message });
   }
   const user = await User.findOne({ email: value.email });
+  console.log(user.verify);
 
   if (!user) {
     return res.status(400).send({ message: "Email not found" });
@@ -91,7 +92,7 @@ const resendVerifyEmail = async (req, res) => {
   if (user.verify) {
     return res
       .status(400)
-      .message({ message: "Verification has already been passed" });
+      .send({ message: "Verification has already been passed" });
   }
 
   const verifyEmail = {
